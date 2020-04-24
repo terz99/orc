@@ -114,6 +114,8 @@ def extract_uci_statements(generated, key, value, imported):
         generated["section"] = value["@name"]
     if key == imported.openwrt_prefix + ":leaf-as-name":
         generated["leaf-as-name"] = value["@name"]
+    if key == imported.openwrt_prefix + ":leaf-as-type":
+        generated["leaf-as-type"] = value["@name"]
 
 
 def extract_type_statements(generated, key, value, imported):

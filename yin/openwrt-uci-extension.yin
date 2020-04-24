@@ -27,4 +27,7 @@
   <extension name="leaf-as-name">
     <argument name="name"/>
   </extension>
+  <extension name="leaf-as-type">
+    <argument name="name"/>
+  </extension>
 </module>

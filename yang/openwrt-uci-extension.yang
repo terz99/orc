@@ -26,4 +26,8 @@ module openwrt-uci-extension {
     extension leaf-as-name {
         argument name;
     }
+
+    extension leaf-as-type {
+        argument name;
+    }
 }

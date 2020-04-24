@@ -116,6 +116,7 @@ module lmapd {
     list function {
       uci:section "function";
       uci:leaf-as-name "uri";
+      uci:leaf-as-type "functions";
 
       key uri;
       description
@@ -145,6 +146,7 @@ module lmapd {
     list option {
       uci:section "task_option";
       uci:leaf-as-name "id";
+      uci:leaf-as-type "task_options";
 
       key "id";
       ordered-by user;
@@ -630,6 +632,7 @@ module lmapd {
         list action {
           uci:section "action";
           uci:leaf-as-name "name";
+          uci:leaf-as-type "action";
           key name;
           description
             "An Action describes a Task that is invoked by the
