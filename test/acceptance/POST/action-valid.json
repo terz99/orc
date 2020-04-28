@@ -1,0 +1,22 @@
+{
+  "schedules": {
+    "schedule": [
+      {
+        "name": "report_secondary",
+        "start": "daily",
+        "action": [
+          {
+            "name": "report",
+            "task": "lmap-reporting-task",
+            "option": [
+              {
+                "id": "new_collector_uri",
+                "value": "https://shadow.example.com/restconf/operations/ietf-lmap-report:report"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
