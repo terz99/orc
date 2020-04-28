@@ -166,18 +166,41 @@ int get_path_from_yang(struct json_object *jobj, struct UciPath *uci) {
 
 int get_leaf_as_name(struct json_object *yang, struct json_object *json,
                      struct UciPath *uci) {
+  const char *value = NULL;
+  if (!(value = get_leaf_as_name_value(yang, json))) {
+    return 0;
+  }
+  uci->section = (char *) value;
+  return 0;
+}
+
+const char *get_leaf_as_name_value(struct json_object *yang, struct json_object *json) {
   struct json_object *uci_value = NULL;
   char *uci_leaf_as_name = NULL;
   json_object_object_get_ex(yang, YANG_UCI_LEAF_AS_NAME, &uci_value);
   if (json_object_get_type(uci_value) == json_type_string) {
     uci_leaf_as_name = (char *)json_object_get_string(uci_value);
   } else {
-    return 0;
+    return NULL;
   }
   json_object_object_get_ex(json, uci_leaf_as_name, &uci_value);
   if (json_object_get_type(uci_value) == json_type_string) {
-    uci->section = (char *)json_object_get_string(uci_value);
+    return json_object_get_string(uci_value);
   }
+  return NULL;
+}
+
+int get_leaf_as_type(struct json_object *yang, struct UciPath *uci) {
+  struct json_object *uci_value = NULL;
+  char *uci_leaf_as_type = NULL;
+  json_object_object_get_ex(yang, YANG_UCI_LEAF_AS_TYPE, &uci_value);
+  if (json_object_get_type(uci_value) == json_type_string) {
+    uci_leaf_as_type = (char *)json_object_get_string(uci_value);
+    uci->option = uci_leaf_as_type;
+    return 1;
+  }
+
+
   return 0;
 }
 

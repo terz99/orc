@@ -13,13 +13,44 @@
 #include "yang-util.h"
 #include "yang-verify.h"
 
+static UciWritePair **verify_nested_lists(struct json_object *content,
+                                          struct json_object *yang_node,
+                                          struct UciPath *path, error *err) {
+  UciWritePair **command_list = NULL;
+  if (json_object_get_type(content) == json_type_array) {
+    json_array_forloop(content, index) {
+      struct json_object *item = json_object_array_get_idx(content, index);
+      char *value = (char *) get_leaf_as_name_value(yang_node, item);
+      UciWritePair *output = initialize_uci_write_pair(path, value, list);
+      if (!output) {
+        *err = INTERNAL;
+        return NULL;
+      }
+      vector_push_back(command_list, output);
+    }
+  } else if (json_object_get_type(content) == json_type_object) {
+    char *value = (char *) get_leaf_as_name_value(yang_node, content);
+    UciWritePair *output = initialize_uci_write_pair(path, value, list);
+    if (!output) {
+      *err = INTERNAL;
+      return NULL;
+    }
+    vector_push_back(command_list, output);
+  } else {
+    *err = INVALID_TYPE;
+    return NULL;
+  }
+
+  *err = RE_OK;
+  return command_list;
+}
+
 static UciWritePair **verify_content_yang(struct json_object *content,
                                           struct json_object *yang_node,
                                           struct UciPath *path, error *err,
                                           int root, int check_exists) {
   UciWritePair **command_list = NULL;
   const char *child_type = NULL;
-  struct UciPath *old_path = NULL;
   if (!(child_type = json_get_string(yang_node, YANG_TYPE))) {
     *err = YANG_SCHEMA_ERROR;
     return NULL;
@@ -97,23 +128,22 @@ static UciWritePair **verify_content_yang(struct json_object *content,
         struct json_object *tmp = json_object_array_get_idx(content, index);
         path->index = pos;
         path->where = 1;
-        old_path = (struct UciPath *) malloc(sizeof(struct UciPath));
-        if (!old_path) {
+        struct UciPath *path_dup = uci_dup_path(path);
+        if (!path_dup) {
           return NULL;
         }
-        memcpy(old_path, path, sizeof(struct UciPath));
         UciWritePair **tmp_list =
-            verify_content_yang(tmp, yang_node, path, err, 0, check_exists);
+            verify_content_yang(tmp, yang_node, path_dup, err, 0, check_exists);
         if (*err != RE_OK) {
           free_uci_write_list(tmp_list);
           return NULL;
         }
-        memcpy(path, old_path, sizeof(struct UciPath));
-        free(old_path);
+
         for (size_t i = 0; i < vector_size(tmp_list); i++) {
           vector_push_back(command_list, tmp_list[i]);
         }
         vector_free(tmp_list);
+        free(path_dup);
       }
     } else {
       path->index = (path->where || !root) ? path->index : list_length;
@@ -134,7 +164,7 @@ static UciWritePair **verify_content_yang(struct json_object *content,
     return command_list;
   }
   if (yang_is_list(child_type)) {
-      get_leaf_as_name(yang_node, content, path);
+    get_leaf_as_name(yang_node, content, path);
   }
   json_object_object_foreach(content, key, val) {
     struct json_object *child = NULL;
@@ -152,9 +182,32 @@ static UciWritePair **verify_content_yang(struct json_object *content,
       *err = NO_SUCH_ELEMENT;
       return NULL;
     }
+
+    const char *child_t = NULL;
+    if (!(child_t = json_get_string(child, YANG_TYPE))) {
+      *err = YANG_SCHEMA_ERROR;
+      return NULL;
+    }
+
+    if (yang_is_list(child_t) && get_leaf_as_type(child, path)) {
+
+      struct UciPath *path_dup = uci_dup_path(path);
+      if (!path_dup) {
+        return NULL;
+      }
+      UciWritePair **tmp_list = verify_nested_lists(val, child, path_dup, err);
+      if (*err != RE_OK) {
+        free_uci_write_list(tmp_list);
+        return NULL;
+      }
+
+      for (size_t i = 0; i < vector_size(tmp_list); i++) {
+        vector_push_back(command_list, tmp_list[i]);
+      }
+    }
+
     get_path_from_yang(child, path);
-    UciWritePair **tmp_list =
-        verify_content_yang(val, child, path, err, root, check_exists);
+    struct UciWritePair **tmp_list = verify_content_yang(val, child, path, err, root, check_exists);
     if (*err != RE_OK) {
       free_uci_write_list(tmp_list);
       return NULL;

@@ -26,6 +26,7 @@ struct UciWhere {
 #define INIT_UCI_PATH() \
   { "", "", "", "", 0, 0 }
 
+struct UciPath *uci_dup_path(struct UciPath* src);
 int uci_read_option(char *path, char *buffer, size_t size);
 char **uci_read_list(char *path);
 int uci_path_exists(char *path);

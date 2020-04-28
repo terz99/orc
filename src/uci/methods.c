@@ -7,6 +7,22 @@
 #include "vector.h"
 
 /**
+ * @brief Duplicates a struct UciPath
+ * @param src source of the duplicate
+ * @return pointer to the duplicate upon success, NULL otherwise
+ */
+struct UciPath *uci_dup_path(struct UciPath* src) {
+  struct UciPath *res = (struct UciPath *) malloc(sizeof(struct UciPath));
+  if (!res) {
+    return NULL;
+  }
+  if (!memcpy(res, src, sizeof(*src))) {
+    return NULL;
+  }
+  return res;
+}
+
+/**
  * reads a uci option into a buffer by path
  * @param path the path to be used
  * @param buffer the buffer the output should be copied to
