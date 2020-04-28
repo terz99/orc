@@ -1,9 +1,10 @@
+#include <ctype.h>
+
 #include "restconf-method.h"
 #include "error.h"
 #include "http.h"
 #include "restconf-json.h"
 #include "restconf-verify.h"
-#include "restconf.h"
 #include "uci/cmd.h"
 #include "uci/uci-get.h"
 #include "uci/uci-util.h"
@@ -45,10 +46,10 @@ static UciWritePair **verify_nested_lists(struct json_object *content,
   return command_list;
 }
 
-static UciWritePair **verify_content_yang(struct json_object *content,
-                                          struct json_object *yang_node,
-                                          struct UciPath *path, error *err,
-                                          int root, int check_exists) {
+static UciWritePair **verify_content_yang_util(struct json_object *content,
+                                               struct json_object *yang_node,
+                                               struct UciPath *path, error *err,
+                                               int root, int check_exists) {
   UciWritePair **command_list = NULL;
   const char *child_type = NULL;
   if (!(child_type = json_get_string(yang_node, YANG_TYPE))) {
@@ -133,7 +134,7 @@ static UciWritePair **verify_content_yang(struct json_object *content,
           return NULL;
         }
         UciWritePair **tmp_list =
-            verify_content_yang(tmp, yang_node, path_dup, err, 0, check_exists);
+            verify_content_yang_util(tmp, yang_node, path_dup, err, 0, check_exists);
         if (*err != RE_OK) {
           free_uci_write_list(tmp_list);
           return NULL;
@@ -149,7 +150,7 @@ static UciWritePair **verify_content_yang(struct json_object *content,
       path->index = (path->where || !root) ? path->index : list_length;
       path->where = 1;
       UciWritePair **tmp_list =
-          verify_content_yang(content, yang_node, path, err, 0, check_exists);
+          verify_content_yang_util(content, yang_node, path, err, 0, check_exists);
       if (*err != RE_OK) {
         free_uci_write_list(tmp_list);
         return NULL;
@@ -204,10 +205,11 @@ static UciWritePair **verify_content_yang(struct json_object *content,
       for (size_t i = 0; i < vector_size(tmp_list); i++) {
         vector_push_back(command_list, tmp_list[i]);
       }
+      vector_free(tmp_list);
     }
 
     get_path_from_yang(child, path);
-    struct UciWritePair **tmp_list = verify_content_yang(val, child, path, err, root, check_exists);
+    struct UciWritePair **tmp_list = verify_content_yang_util(val, child, path, err, root, check_exists);
     if (*err != RE_OK) {
       free_uci_write_list(tmp_list);
       return NULL;
@@ -219,6 +221,39 @@ static UciWritePair **verify_content_yang(struct json_object *content,
   }
   *err = RE_OK;
   return command_list;
+}
+
+int is_null_or_empty(char *str) {
+  return (str == NULL || strlen(str) == 0);
+}
+
+void verify_section_names(UciWritePair **cmds, error *err) {
+  *err = RE_OK;
+  for (size_t i = 0; i < vector_size(cmds); i++) {
+    UciWritePair *cmd = cmds[i];
+    if (is_null_or_empty(cmd->path.section_type) || is_null_or_empty(cmd->path.section)) {
+      continue;
+    }
+    for (int j = 0; j < strlen(cmd->path.section); j++) {
+      if (!(isalnum(cmd->path.section[j]) || cmd->path.section[j] == '_')) {
+        *err = INVALID_TYPE;
+        return;
+      }
+    }
+  }
+}
+
+static UciWritePair **verify_content_yang(struct json_object *content,
+                                               struct json_object *yang_node,
+                                               struct UciPath *path, error *err,
+                                               int root, int check_exists) {
+  UciWritePair **cmds = verify_content_yang_util(content, yang_node, path, err, root, check_exists);
+  if (*err != RE_OK) {
+    return NULL;
+  }
+
+  verify_section_names(cmds, err);
+  return cmds;
 }
 
 static error get_list_item_where(struct json_object *yang, char *keylist,
@@ -777,7 +812,7 @@ int data_put(struct CgiContext *cgi, char **pathvec, int root) {
   }
 
   cmds = verify_content_yang(root_object, top_level, &uci, &err,
-                             !(vector_size(pathvec) == 2 || root), 0);
+                                  !(vector_size(pathvec) == 2 || root), 0);
   if (err != RE_OK) {
     retval = print_error(err);
     goto done;
