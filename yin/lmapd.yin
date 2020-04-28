@@ -116,7 +116,7 @@ that identify functions of a Task.</text>
     <list name="function">
       <uci:section name="function"/>
       <uci:leaf-as-name name="uri"/>
-      <uci:leaf-as-type name="functions"/>
+      <uci:leaf-as-type name="function"/>
       <key value="uri"/>
       <description>
         <text>A list of entries in a registry identifying functions.</text>

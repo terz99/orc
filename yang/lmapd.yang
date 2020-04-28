@@ -116,7 +116,7 @@ module lmapd {
     list function {
       uci:section "function";
       uci:leaf-as-name "uri";
-      uci:leaf-as-type "functions";
+      uci:leaf-as-type "function";
 
       key uri;
       description
