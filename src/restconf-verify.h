@@ -10,6 +10,9 @@ UciWritePair **restconf_verify_leaf_list(struct json_object *content,
                                          UciWritePair **command_list,
                                          error *err, int check_exists,
                                          struct UciPath *path);
+UciWritePair **restconf_verify_nested_lists(struct json_object *content,
+                                            struct json_object *yang_node,
+                                            struct UciPath *path, error *err);
 error restconf_verify_leaf(struct json_object *value, struct UciPath *path,
                            struct json_object *yang, int check_exists);
 #endif  // RESTCONF_VERIFY_H

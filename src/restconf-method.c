@@ -14,38 +14,6 @@
 #include "yang-util.h"
 #include "yang-verify.h"
 
-static UciWritePair **verify_nested_lists(struct json_object *content,
-                                          struct json_object *yang_node,
-                                          struct UciPath *path, error *err) {
-  UciWritePair **command_list = NULL;
-  if (json_object_get_type(content) == json_type_array) {
-    json_array_forloop(content, index) {
-      struct json_object *item = json_object_array_get_idx(content, index);
-      char *value = (char *) get_leaf_as_name_value(yang_node, item);
-      UciWritePair *output = initialize_uci_write_pair(path, value, list);
-      if (!output) {
-        *err = INTERNAL;
-        return NULL;
-      }
-      vector_push_back(command_list, output);
-    }
-  } else if (json_object_get_type(content) == json_type_object) {
-    char *value = (char *) get_leaf_as_name_value(yang_node, content);
-    UciWritePair *output = initialize_uci_write_pair(path, value, list);
-    if (!output) {
-      *err = INTERNAL;
-      return NULL;
-    }
-    vector_push_back(command_list, output);
-  } else {
-    *err = INVALID_TYPE;
-    return NULL;
-  }
-
-  *err = RE_OK;
-  return command_list;
-}
-
 static UciWritePair **verify_content_yang_util(struct json_object *content,
                                                struct json_object *yang_node,
                                                struct UciPath *path, error *err,
@@ -196,7 +164,7 @@ static UciWritePair **verify_content_yang_util(struct json_object *content,
       if (!path_dup) {
         return NULL;
       }
-      UciWritePair **tmp_list = verify_nested_lists(val, child, path_dup, err);
+      UciWritePair **tmp_list = restconf_verify_nested_lists(val, child, path_dup, err);
       if (*err != RE_OK) {
         free_uci_write_list(tmp_list);
         return NULL;

@@ -97,3 +97,35 @@ UciWritePair **restconf_verify_leaf_list(struct json_object *content,
   }
   return command_list;
 }
+
+UciWritePair **restconf_verify_nested_lists(struct json_object *content,
+                                          struct json_object *yang_node,
+                                          struct UciPath *path, error *err) {
+  UciWritePair **command_list = NULL;
+  if (json_object_get_type(content) == json_type_array) {
+    json_array_forloop(content, index) {
+      struct json_object *item = json_object_array_get_idx(content, index);
+      char *value = (char *) get_leaf_as_name_value(yang_node, item);
+      UciWritePair *output = initialize_uci_write_pair(path, value, list);
+      if (!output) {
+        *err = INTERNAL;
+        return NULL;
+      }
+      vector_push_back(command_list, output);
+    }
+  } else if (json_object_get_type(content) == json_type_object) {
+    char *value = (char *) get_leaf_as_name_value(yang_node, content);
+    UciWritePair *output = initialize_uci_write_pair(path, value, list);
+    if (!output) {
+      *err = INTERNAL;
+      return NULL;
+    }
+    vector_push_back(command_list, output);
+  } else {
+    *err = INVALID_TYPE;
+    return NULL;
+  }
+
+  *err = RE_OK;
+  return command_list;
+}
