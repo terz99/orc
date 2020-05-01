@@ -6,6 +6,16 @@
 #include "util.h"
 #include "vector.h"
 
+struct UciPath *uci_link_parent(struct UciPath* src) {
+  struct UciPath *res = uci_dup_path(src);
+  if (!res) {
+    return NULL;
+  }
+
+  res->option = "";
+  return res;
+}
+
 /**
  * @brief Duplicates a struct UciPath
  * @param src source of the duplicate

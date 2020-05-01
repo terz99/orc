@@ -11,13 +11,19 @@
       "email": "example@university.de"
     },
     "students": [
+    {
+      "firstname": "test",
+      "lastname": "student",
+      "age": 21,
+      "major": "CS",
+      "grade": 75,
+      "option": [
       {
-        "firstname": "test",
-        "lastname": "student",
-        "age": 21,
-        "major": "CS",
-        "grade": 75
+        "id": "option_id",
+        "name": "option_name"
       }
+      ]
+    }
     ]
   }
 }

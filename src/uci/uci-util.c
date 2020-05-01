@@ -92,6 +92,10 @@ int get_path_from_yang(struct json_object *jobj, struct UciPath *uci) {
     uci_section_type = (char *)json_object_get_string(uci_value);
   }
 
+  struct UciPath *path_dup = uci_dup_path(uci);
+  if (!path_dup) {
+    goto done;
+  }
   if (uci_package) {
     if (uci_section && uci_section_type) {
       if (uci_option) {
@@ -99,32 +103,32 @@ int get_path_from_yang(struct json_object *jobj, struct UciPath *uci) {
         uci->section = uci_section;
         uci->section_type = uci_section_type;
         uci->option = uci_option;
-        return 0;
+        goto done;
       }
       uci->package = uci_package;
       uci->section = uci_section;
       uci->section_type = uci_section_type;
       uci->option = "";
-      return 0;
+      goto done;
     } else if (uci_section) {
       if (uci_option) {
         uci->package = uci_package;
         uci->section = uci_section;
         uci->section_type = "container";
         uci->option = uci_option;
-        return 0;
+        goto done;
       }
       uci->package = uci_package;
       uci->section = uci_section;
       uci->section_type = "container";
       uci->option = "";
-      return 0;
+      goto done;
     }
     uci->package = uci_package;
     uci->section = "";
     uci->section_type = "";
     uci->option = "";
-    return 0;
+    goto done;
   }
 
   if (uci_section && uci_section_type) {
@@ -132,23 +136,23 @@ int get_path_from_yang(struct json_object *jobj, struct UciPath *uci) {
       uci->section = uci_section;
       uci->section_type = uci_section_type;
       uci->option = uci_option;
-      return 0;
+      goto done;
     }
     uci->section = uci_section;
     uci->section_type = uci_section_type;
     uci->option = "";
-    return 0;
+    goto done;
   } else if (uci_section) {
     if (uci_option) {
       uci->section = uci_section;
       uci->section_type = "container";
       uci->option = uci_option;
-      return 0;
+      goto done;
     }
     uci->section = uci_section;
     uci->section_type = "container";
     uci->option = "";
-    return 0;
+    goto done;
   } else if (uci_section_type) {
     uci->section_type = uci_section_type;
     uci->section = "";
@@ -159,9 +163,14 @@ int get_path_from_yang(struct json_object *jobj, struct UciPath *uci) {
 
   if (uci_option) {
     uci->option = uci_option;
-    return 0;
+    goto done;
   }
-  return 1;
+  done:
+  if (get_leaf_as_type(jobj, uci)) {
+    uci->option = "";
+    uci->parent = uci_link_parent(path_dup);
+  }
+  return 0;
 }
 
 int get_leaf_as_name(struct json_object *yang, struct json_object *json,
@@ -170,7 +179,17 @@ int get_leaf_as_name(struct json_object *yang, struct json_object *json,
   if (!(value = get_leaf_as_name_value(yang, json))) {
     return 0;
   }
-  uci->section = (char *) value;
+  if (uci->parent != NULL) {
+    int size = strlen(value) + strlen(uci->parent->section) + 2;
+    char *buf = malloc(size);
+    if (!buf) {
+      return 1;
+    }
+    snprintf(buf, size, "%s_%s", uci->parent->section, value);
+    uci->section = buf;
+  } else {
+    uci->section = (char *) value;
+  }
   return 0;
 }
 
@@ -199,7 +218,6 @@ int get_leaf_as_type(struct json_object *yang, struct UciPath *uci) {
     uci->option = uci_leaf_as_type;
     return 1;
   }
-
 
   return 0;
 }
