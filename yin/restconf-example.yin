@@ -80,22 +80,10 @@
         <uci:option name="grade"/>
         <type name="grade"/>
       </leaf>
-      <list name="contact-option">
-        <uci:section name="contact_option"/>
-        <uci:leaf-as-name name="email"/>
-        <key value="email"/>
-        <leaf name="email">
-          <uci:option name="email"/>
-          <type name="string"/>
-        </leaf>
-        <leaf name="example-leaf">
-          <uci:option name="example-leaf"/>
-          <type name="string"/>
-        </leaf>
-      </list>
       <list name="option">
         <uci:section name="options"/>
         <uci:leaf-as-name name="id"/>
+        <uci:leaf-as-type name="student_options"/>
         <key value="id"/>
         <leaf name="id">
           <uci:option name="id"/>
@@ -108,6 +96,7 @@
         <list name="more-options">
           <uci:section name="more_options"/>
           <uci:leaf-as-name name="id"/>
+          <uci:leaf-as-type name="more_student_options"/>
           <key value="id"/>
           <leaf name="id">
             <uci:option name="id"/>

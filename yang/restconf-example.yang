@@ -87,26 +87,10 @@ module restconf-example {
         type grade;
       }
 
-      list contact-option {
-        uci:section "contact_option";
-        uci:leaf-as-name "email";
-
-        key email;
-
-        leaf email {
-          uci:option "email";
-          type string;
-        }
-
-        leaf example-leaf {
-          uci:option "example-leaf";
-          type string;
-        }
-      }
-
       list option {
         uci:section "options";
         uci:leaf-as-name "id";
+        uci:leaf-as-type "student_options";
 
         key "id";
 
@@ -123,6 +107,7 @@ module restconf-example {
         list more-options {
           uci:section "more_options";
           uci:leaf-as-name "id";
+          uci:leaf-as-type "more_student_options";
 
           key "id";
 

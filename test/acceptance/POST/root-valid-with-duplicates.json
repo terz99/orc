@@ -1,0 +1,44 @@
+{
+  "restconf-example:course": {
+    "instructors": [
+      "Example Instructor",
+      "Another Instructor"
+    ],
+    "students": [
+      {
+        "firstname": "test",
+        "lastname": "student",
+        "age": 21,
+        "option": [
+          {
+            "id": "0",
+            "name": "example-name",
+            "more-options": [
+              {
+                "id": "1",
+                "value": "example-value"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "firstname": "test1",
+        "lastname": "student1",
+        "age": 22,
+        "option": [
+          {
+            "id": "2",
+            "name": "example-name",
+            "more-options": [
+              {
+                "id": "3",
+                "value": "example-value"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
