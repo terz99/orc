@@ -1,9 +1,5 @@
 {
   "restconf-example:course": {
-    "instructors": [
-      "Example Instructor",
-      "Another Instructor"
-    ],
     "students": [
       {
         "firstname": "test",
@@ -12,13 +8,7 @@
         "option": [
           {
             "id": "0",
-            "name": "example-name",
-            "more-options": [
-              {
-                "id": "1",
-                "value": "example-value"
-              }
-            ]
+            "name": "example-name"
           }
         ]
       },
@@ -29,13 +19,7 @@
         "option": [
           {
             "id": "0",
-            "name": "example-name",
-            "more-options": [
-              {
-                "id": "1",
-                "value": "example-value"
-              }
-            ]
+            "name": "example-name"
           }
         ]
       }
