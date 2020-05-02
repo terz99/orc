@@ -55,6 +55,7 @@
     <list name="students">
       <uci:section name="student"/>
       <uci:leaf-as-name name="lastname"/>
+      <uci:leaf-as-type name="students"/>
       <key value="firstname lastname age"/>
       <leaf name="firstname">
         <uci:option name="firstname"/>
@@ -93,20 +94,6 @@
           <uci:option name="name"/>
           <type name="string"/>
         </leaf>
-        <list name="more-options">
-          <uci:section name="more_options"/>
-          <uci:leaf-as-name name="id"/>
-          <uci:leaf-as-type name="more_student_options"/>
-          <key value="id"/>
-          <leaf name="id">
-            <uci:option name="id"/>
-            <type name="string"/>
-          </leaf>
-          <leaf name="value">
-            <uci:option name="value"/>
-            <type name="string"/>
-          </leaf>
-        </list>
       </list>
     </list>
     <container name="instructor">

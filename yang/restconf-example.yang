@@ -56,6 +56,7 @@ module restconf-example {
     list students {
       uci:section "student";
       uci:leaf-as-name "lastname";
+      uci:leaf-as-type "students";
 
       key "firstname lastname age";
       leaf firstname {
@@ -102,24 +103,6 @@ module restconf-example {
         leaf name {
           uci:option "name";
           type string;
-        }
-
-        list more-options {
-          uci:section "more_options";
-          uci:leaf-as-name "id";
-          uci:leaf-as-type "more_student_options";
-
-          key "id";
-
-          leaf id {
-            uci:option "id";
-            type string;
-          }
-
-          leaf value {
-            uci:option "value";
-            type string;
-          }
         }
       }
     }
