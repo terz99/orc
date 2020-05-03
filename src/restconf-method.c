@@ -506,7 +506,15 @@ int data_get(struct CgiContext *cgi, char **pathvec) {
     json_object_put(parent);
   } else if (yang_is_container(type_string)) {
     struct json_object *parent = json_object_new_object();
-    json_object_object_add(parent, pathvec[1], yang_tree);
+    char path_string[512];
+    size_t size = 0;
+    for (size_t i = 1; i < vector_size(pathvec); i++) {
+      strcat(path_string, pathvec[i]);
+      strcat(path_string, ":");
+      size = size + strlen(pathvec[i]) + 1;
+    }
+    path_string[size-1] = '\0';
+    json_object_object_add(parent, path_string, yang_tree);
     json_pretty_print(parent);
     json_object_put(parent);
   }
