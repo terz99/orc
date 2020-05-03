@@ -133,10 +133,47 @@ struct json_object *uci_get_list(struct json_object *yang, struct UciPath *path,
     top_level = json_object_new_object();
     json_object_object_foreach(map, key, val) {
       err_rec = RE_OK;
+      const char *type_string = NULL;
+      if (!(type_string = json_get_string(val, YANG_TYPE))) {
+        *err = YANG_SCHEMA_ERROR;
+        return NULL;
+      }
+      if (yang_is_list(type_string) || yang_is_container(type_string)) {
+        continue;
+      }
       check = build_recursive(val, path, &err_rec, NULL, 0);
       if (!add_to_json(check, top_level, key, NULL, &err_rec)) {
         *err = err_rec;
         return NULL;
+      }
+    }
+
+    json_object_object_foreach(map, object_key, value) {
+      err_rec = RE_OK;
+      const char *type_string = NULL;
+      if (!(type_string = json_get_string(value, YANG_TYPE))) {
+        *err = YANG_SCHEMA_ERROR;
+        return NULL;
+      }
+      if (yang_is_leaf_list(type_string) || yang_is_leaf(type_string)) {
+        continue;
+      }
+
+      if (get_leaf_as_type(value, path)) {
+        char **ref_names = uci_get_children_references(path, err);
+        for (size_t i = 0; i < vector_size(ref_names); i++) {
+          check = build_recursive(value, path, &err_rec, ref_names[i], 0);
+          if (!add_to_json(check, top_level, object_key, type, &err_rec)) {
+            *err = err_rec;
+            return NULL;
+          }
+        }
+      } else {
+        check = build_recursive(value, path, &err_rec, NULL, 0);
+        if (!add_to_json(check, top_level, object_key, type, &err_rec)) {
+          *err = err_rec;
+          return NULL;
+        }
       }
     }
     json_object_array_add(array, top_level);
