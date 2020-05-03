@@ -224,6 +224,7 @@ the Measurement Agent.</text>
         <list name="task">
           <uci:section name="task"/>
           <uci:leaf-as-name name="name"/>
+          <uci:leaf-as-type name="tasks"/>
           <key value="name"/>
           <description>
             <text>The list of Tasks supported by the Measurement Agent.</text>
@@ -372,6 +373,7 @@ has been lost.</text>
       <list name="task">
         <uci:section name="task"/>
         <uci:leaf-as-name name="name"/>
+        <uci:leaf-as-type name="tasks"/>
         <key value="name"/>
         <description>
           <text>The list of Tasks configured on the Measurement
@@ -422,6 +424,7 @@ which Tasks are executed by the LMAP implementation.</text>
       <list name="schedule">
         <uci:section name="schedule"/>
         <uci:leaf-as-name name="name"/>
+        <uci:leaf-as-type name="schedules"/>
         <key value="name"/>
         <description>
           <text>Configuration of a particular Schedule.</text>
@@ -846,6 +849,7 @@ certain Actions from starting.</text>
       <list name="suppression">
         <uci:section name="suppression"/>
         <uci:leaf-as-name name="name"/>
+        <uci:leaf-as-type name="suppressions"/>
         <key value="name"/>
         <description>
           <text>Configuration of a particular Suppression.</text>
@@ -946,6 +950,7 @@ provided by the scheduler implementation.</text>
       <list name="event">
         <uci:section name="event"/>
         <uci:leaf-as-name name="name"/>
+        <uci:leaf-as-type name="events"/>
         <key value="name"/>
         <description>
           <text>The list of event sources configured on the

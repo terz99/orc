@@ -233,6 +233,7 @@ module lmapd {
         list task {
           uci:section "task";
           uci:leaf-as-name "name";
+          uci:leaf-as-type "tasks";
           key name;
           description
             "The list of Tasks supported by the Measurement Agent.";
@@ -387,6 +388,7 @@ module lmapd {
       list task {
         uci:section "task";
         uci:leaf-as-name "name";
+        uci:leaf-as-type "tasks";
         key name;
         description
           "The list of Tasks configured on the Measurement
@@ -444,6 +446,7 @@ module lmapd {
       list schedule {
         uci:section "schedule";
         uci:leaf-as-name "name";
+        uci:leaf-as-type "schedules";
         key name;
         description
           "Configuration of a particular Schedule.";
@@ -866,6 +869,7 @@ module lmapd {
       list suppression {
         uci:section "suppression";
         uci:leaf-as-name "name";
+        uci:leaf-as-type "suppressions";
         key name;
         description
           "Configuration of a particular Suppression.";
@@ -967,6 +971,7 @@ module lmapd {
       list event {
         uci:section "event";
         uci:leaf-as-name "name";
+        uci:leaf-as-type "events";
         key name;
         description
           "The list of event sources configured on the
