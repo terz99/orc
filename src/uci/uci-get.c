@@ -7,22 +7,118 @@
 #include "vector.h"
 #include "yang-util.h"
 
+int add_to_json(struct json_object *check, struct json_object *top_level,
+                char *key, const char *type, error *err) {
+
+  if (!check && *err != RE_OK && *err != UCI_READ_FAILED &&
+      *err != NO_SUCH_ELEMENT) {
+    return 0;
+  }
+  if (*err != UCI_READ_FAILED && check) {
+    struct json_object *array = NULL;
+    if ((array = json_object_object_get(top_level, key))
+      && json_object_get_type(array) == json_type_array
+      && json_object_get_type(check) == json_type_array) {
+      for (size_t i = 0; i < json_object_array_length(check); i++) {
+        json_object_array_add(array, json_object_array_get_idx(check, i));
+      }
+    } else {
+      json_object_object_add(top_level, key, check);
+    }
+  } else if (!check && err == RE_OK && type != NULL && yang_is_container(type)) {
+    json_object_object_add(top_level, key, json_object_new_object());
+  }
+  return 1;
+}
+
+char **uci_get_children_references(struct UciPath *path, error *err) {
+  char **ref_names = NULL;
+  char path_string[512];
+
+  uci_combine_to_path(path, path_string, sizeof(path_string));
+  if (!(ref_names = uci_read_list(path_string))) {
+    *err = UCI_READ_FAILED;
+    return NULL;
+  }
+  return ref_names;
+}
+
 struct json_object *uci_get_list(struct json_object *yang, struct UciPath *path,
                                  error *err) {
+  struct json_object *map = NULL;
   struct json_object *array = NULL;
+  struct json_object *top_level = NULL;
+  struct json_object *check = NULL;
+  const char *type = NULL;
   int list_length;
   int single_item = path->where;
+  error err_rec;
 
-  if (!json_get_string(yang, YANG_TYPE)) {
+  if (!(type = json_get_string(yang, YANG_TYPE))) {
     *err = YANG_SCHEMA_ERROR;
     return NULL;
   }
+
+  if (strlen(path->section_type) != 0 && strlen(path->section) != 0) {
+    const char *type_string = NULL;
+    path->where = 0;
+    array = json_object_new_array();
+    top_level = json_object_new_object();
+    json_object_object_get_ex(yang, YANG_MAP, &map);
+    json_object_object_foreach(map, key, val) {
+      err_rec = RE_OK;
+      if (!(type_string = json_get_string(val, YANG_TYPE))) {
+        *err = YANG_SCHEMA_ERROR;
+        return NULL;
+      }
+      if (yang_is_container(type_string) || yang_is_list(type_string)) {
+        continue;
+      }
+      check = build_recursive(val, path, &err_rec, NULL, 0);
+      if (!add_to_json(check, top_level, key, NULL, &err_rec)) {
+        *err = err_rec;
+        return NULL;
+      }
+    }
+
+    json_object_object_foreach(map, object_key, value) {
+      err_rec = RE_OK;
+      if (!(type_string = json_get_string(value, YANG_TYPE))) {
+        *err = YANG_SCHEMA_ERROR;
+        return NULL;
+      }
+      if (yang_is_leaf_list(type_string) || yang_is_leaf(type_string)) {
+        continue;
+      }
+
+      struct json_object **checks = NULL;
+      if (get_leaf_as_type(value, path)) {
+        char **ref_names = uci_get_children_references(path, err);
+        for (size_t i = 0; i < vector_size(ref_names); i++) {
+          vector_push_back(checks,
+                           build_recursive(value, path, &err_rec, ref_names[i], 0));
+        }
+      } else {
+        vector_push_back(checks, build_recursive(value, path, &err_rec, NULL, 0));
+      }
+
+      for (int i = 0; i < vector_size(checks); i++) {
+        check = checks[i];
+        if (!add_to_json(check, top_level, object_key, type, &err_rec)) {
+          *err = err_rec;
+          return NULL;
+        }
+      }
+    }
+    json_object_array_add(array, top_level);
+    goto done;
+  }
+
   if (strlen(path->section_type) == 0 || strlen(path->section) != 0) {
     *err = YANG_SCHEMA_ERROR;
     return NULL;
   }
 
-  struct json_object *map = NULL;
   json_object_object_get_ex(yang, YANG_MAP, &map);
 
   if ((list_length = uci_list_length(path)) < 1) {
@@ -36,12 +132,13 @@ struct json_object *uci_get_list(struct json_object *yang, struct UciPath *path,
       path->index = index;
       path->where = 1;
     }
-    struct json_object *top_level = json_object_new_object();
+    top_level = json_object_new_object();
     json_object_object_foreach(map, key, val) {
-      error err_rec = RE_OK;
-      struct json_object *check = build_recursive(val, path, &err_rec, 0);
-      if (check) {
-        json_object_object_add(top_level, key, check);
+      err_rec = RE_OK;
+      check = build_recursive(val, path, &err_rec, NULL, 0);
+      if (!add_to_json(check, top_level, key, NULL, &err_rec)) {
+        *err = err_rec;
+        return NULL;
       }
     }
     json_object_array_add(array, top_level);
@@ -50,6 +147,7 @@ struct json_object *uci_get_list(struct json_object *yang, struct UciPath *path,
     }
   }
 
+  done:
   *err = RE_OK;
   path->index = 0;
   path->where = 0;

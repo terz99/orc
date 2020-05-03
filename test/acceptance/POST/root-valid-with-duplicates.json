@@ -8,7 +8,11 @@
         "option": [
           {
             "id": "0",
-            "name": "example-name"
+            "name": "example-name-mf"
+          },
+          {
+            "id": "1",
+            "name": "example-dude"
           }
         ]
       },
@@ -20,6 +24,14 @@
           {
             "id": "0",
             "name": "example-name"
+          },
+          {
+            "id": "2",
+            "name": "example-mf"
+          },
+          {
+            "id": "1",
+            "name": "example-dude"
           }
         ]
       }
