@@ -91,19 +91,17 @@ struct json_object *uci_get_list(struct json_object *yang, struct UciPath *path,
         continue;
       }
 
-      struct json_object **checks = NULL;
       if (get_leaf_as_type(value, path)) {
         char **ref_names = uci_get_children_references(path, err);
         for (size_t i = 0; i < vector_size(ref_names); i++) {
-          vector_push_back(checks,
-                           build_recursive(value, path, &err_rec, ref_names[i], 0));
+          check = build_recursive(value, path, &err_rec, ref_names[i], 0);
+          if (!add_to_json(check, top_level, object_key, type, &err_rec)) {
+            *err = err_rec;
+            return NULL;
+          }
         }
       } else {
-        vector_push_back(checks, build_recursive(value, path, &err_rec, NULL, 0));
-      }
-
-      for (int i = 0; i < vector_size(checks); i++) {
-        check = checks[i];
+        check = build_recursive(value, path, &err_rec, NULL, 0);
         if (!add_to_json(check, top_level, object_key, type, &err_rec)) {
           *err = err_rec;
           return NULL;

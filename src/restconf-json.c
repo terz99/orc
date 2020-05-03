@@ -1,5 +1,6 @@
 #include "restconf-json.h"
 #include <stdio.h>
+#include <ctype.h>
 #include "error.h"
 #include "restconf.h"
 #include "yang-util.h"
@@ -65,8 +66,24 @@ struct json_object* json_yang_type_format(yang_type type, const char* val) {
     int32_t integer = strtoimax(val, NULL, 10);
     return json_object_new_int(integer);
   }
-  if (type == STRING || type == INT_64 || type == UINT_64) {
+  if (type == STRING || type == INT_64 || type == UINT_64 || type == LEAF_REF) {
     return json_object_new_string(val);
+  }
+  if (type == ENUMERATION) {
+    for (int i = 0; i < strlen(val); i++) {
+      if (isalpha(val[i])) {
+        return json_object_new_string(val);
+      }
+    }
+    int32_t integer = strtoimax(val, NULL, 10);
+    return json_object_new_int(integer);
+  }
+  if (type == BOOLEAN) {
+    if (strcmp(val, "1") == 0 || strcmp(val, "true") == 0) {
+      return json_object_new_boolean(1);
+    } else if (strcmp(val, "0") == 0 || strcmp(val, "false") == 0) {
+      return json_object_new_boolean(0);
+    }
   }
   return NULL;
 }

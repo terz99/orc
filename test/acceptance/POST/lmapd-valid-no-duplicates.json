@@ -162,28 +162,6 @@
                 "interval":60
              }
           ]
-       },
-       "capabilities":{
-          "version":"0.1",
-          "tasks":{
-             "task":[
-                {
-                   "name":"ping",
-                   "version":"0.6",
-                   "program":"/bin/ping"
-                },
-                {
-                   "name":"traceroute",
-                   "version":"0.6",
-                   "program":"/bin/traceroute"
-                },
-                {
-                   "name":"lmap_reporter",
-                   "program":"/bin/lmap_reporter",
-                   "version":"0.1"
-                }
-             ]
-          }
        }
     }
  }
