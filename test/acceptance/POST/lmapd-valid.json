@@ -4,13 +4,7 @@
          "schedule": [
             {
                "name": "s1",
-               "execution-mode": "sequential",
-               "action": [
-                  {
-                     "name": "a",
-                     "task": "ping"
-                  }
-               ]
+               "execution-mode": "sequential"
             },
             {
                "name": "s2",

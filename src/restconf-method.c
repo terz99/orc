@@ -313,7 +313,30 @@ static error check_path(struct json_object **root_yang, char **path,
     if (!(child = json_get_object_from_map(iter, path_computed))) {
       return NO_SUCH_ELEMENT;
     }
+
     get_path_from_yang(child, uci);
+    if (keylist && uci->parent && get_leaf_as_type(child, uci->parent)) {
+      char **ref_names = uci_get_children_references(uci->parent, &err);
+      uci->parent->option = "";
+      if (err != RE_OK) {
+        return err;
+      }
+
+      char target_name[512];
+      int size = snprintf(target_name, sizeof(target_name), "%s_%s", uci->parent->section, keylist);
+      target_name[size] = '\0';
+      for (size_t j = 0; j < vector_size(ref_names); j++) {
+        if (strcmp(ref_names[j], target_name) == 0) {
+          uci->section = ref_names[j];
+          break;
+        }
+      }
+
+      if (is_null_or_empty(uci->section)) {
+        return NO_SUCH_ELEMENT;
+      }
+    }
+
     type = json_get_string(child, YANG_TYPE);
     if (type && yang_is_list(type)) {
       int next_is_end = i + 1 == end;

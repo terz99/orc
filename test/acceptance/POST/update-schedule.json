@@ -1,0 +1,7 @@
+{
+  "schedule": {
+    "name": "demo",
+    "start": "every_minute",
+    "execution-mode": "parallel"
+  }
+}

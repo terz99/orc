@@ -40,6 +40,8 @@ char **uci_get_children_references(struct UciPath *path, error *err) {
     *err = UCI_READ_FAILED;
     return NULL;
   }
+
+  *err = RE_OK;
   return ref_names;
 }
 

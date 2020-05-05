@@ -1,0 +1,6 @@
+{
+    "schedule": {
+        "name": "s1",
+        "execution-mode": "parallel"
+    }
+}
