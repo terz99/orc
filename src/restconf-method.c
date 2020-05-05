@@ -177,7 +177,7 @@ static UciWritePair **verify_content_yang_util(struct json_object *content,
     }
 
     get_path_from_yang(child, path);
-    struct UciWritePair **tmp_list = verify_content_yang_util(val, child, path, err, root, check_exists);
+    struct UciWritePair **tmp_list = verify_content_yang_util(val, child, path, err, 0, check_exists);
     if (*err != RE_OK) {
       free_uci_write_list(tmp_list);
       return NULL;
@@ -925,6 +925,50 @@ done:
   return retval;
 }
 
+static struct UciPath *extract_nested_list_paths(struct UciPath *path_list,
+    struct json_object *node, struct UciPath *uci, error *err) {
+  struct UciPath *res = NULL;
+  struct UciPath *nested_path_list = extract_paths(node, uci, err);
+  if (*err != RE_OK) {
+    return NULL;
+  }
+  for (size_t i = 0; i < vector_size(path_list); i++) {
+    vector_push_back(res, path_list[i]);
+  }
+  for (size_t i = 0; i < vector_size(nested_path_list); i++) {
+    vector_push_back(res, nested_path_list[i]);
+  }
+  return res;
+}
+
+static struct UciPath *extract_list_paths(struct UciPath *path_list, struct json_object *node, struct UciPath *uci, error *err) {
+  vector_push_back(path_list, *uci);
+  json_object_object_foreach(node, key, val) {
+    const char *subnode_type = NULL;
+    if (!(subnode_type = json_get_string(val, YANG_TYPE))) {
+      *err = YANG_SCHEMA_ERROR;
+      return NULL;
+    }
+    if (yang_is_leaf(subnode_type) || yang_is_leaf_list(subnode_type)) {
+      continue;
+    }
+    get_path_from_yang(val, uci);
+    if (uci->parent && get_leaf_as_type(val, uci->parent)) {
+      char **ref_names = uci_get_children_references(uci->parent, err);
+      if (*err != RE_OK) {
+        return NULL;
+      }
+      for (size_t i = 0; i < vector_size(ref_names); i++) {
+        uci->section = ref_names[i];
+        path_list = extract_nested_list_paths(path_list, val, uci, err);
+      }
+    } else {
+      path_list = extract_nested_list_paths(path_list, val, uci, err);
+    }
+  }
+  return path_list;
+}
+
 struct UciPath *extract_paths(struct json_object *node, struct UciPath *uci,
                               error *err) {
   struct json_object *map = NULL;
@@ -949,34 +993,29 @@ struct UciPath *extract_paths(struct json_object *node, struct UciPath *uci,
     *err = RE_OK;
     return path_list;
   } else if (yang_is_list(type)) {
-    int list_length = uci_list_length(uci);
     json_object_object_get_ex(node, YANG_MAP, &map);
+
+    // If section is named
+    if (!is_null_or_empty(uci->section)) {
+      path_list = extract_list_paths(path_list, map, uci, err);
+      if (!path_list || *err != RE_OK) {
+        return NULL;
+      }
+      goto done_list;
+    }
+
+    int list_length = uci_list_length(uci);
     int start = (uci->where) ? uci->index : 0;
     int end = (uci->where) ? uci->index + 1 : list_length;
     for (int index = start; index < end; index++) {
       uci->where = 1;
       uci->index = start;
-      vector_push_back(path_list, *uci);
-      json_object_object_foreach(map, key, val) {
-        const char *subnode_type = NULL;
-        if (!(subnode_type = json_get_string(val, YANG_TYPE))) {
-          *err = YANG_SCHEMA_ERROR;
-          return NULL;
-        }
-        if (yang_is_container(subnode_type) || yang_is_list(subnode_type)) {
-          struct UciPath *nested_path_list = NULL;
-          get_path_from_yang(val, uci);
-          nested_path_list = extract_paths(val, uci, err);
-          if (*err != RE_OK) {
-            return NULL;
-          }
-          for (size_t i = 0; i < vector_size(nested_path_list); i++) {
-            vector_push_back(path_list, nested_path_list[i]);
-          }
-          vector_free(nested_path_list);
-        }
+      path_list = extract_list_paths(path_list, map, uci, err);
+      if (!path_list || *err != RE_OK) {
+        return NULL;
       }
     }
+    done_list:
     uci->option = "";
     uci->section_type = "";
     uci->index = 0;
@@ -984,25 +1023,10 @@ struct UciPath *extract_paths(struct json_object *node, struct UciPath *uci,
     *err = RE_OK;
     return path_list;
   }
-  vector_push_back(path_list, *uci);
   json_object_object_get_ex(node, YANG_MAP, &map);
-  json_object_object_foreach(map, key, val) {
-    const char *subnode_type = NULL;
-    if (!(subnode_type = json_get_string(val, YANG_TYPE))) {
-      *err = YANG_SCHEMA_ERROR;
-    }
-    if (yang_is_container(subnode_type) || yang_is_list(subnode_type)) {
-      struct UciPath *nested_path_list = NULL;
-      get_path_from_yang(val, uci);
-      nested_path_list = extract_paths(val, uci, err);
-      if (*err != RE_OK) {
-        return NULL;
-      }
-      for (size_t i = 0; i < vector_size(nested_path_list); i++) {
-        vector_push_back(path_list, nested_path_list[i]);
-      }
-      vector_free(nested_path_list);
-    }
+  path_list = extract_list_paths(path_list, map, uci, err);
+  if (!path_list || *err != RE_OK) {
+    return NULL;
   }
   *err = RE_OK;
   return path_list;

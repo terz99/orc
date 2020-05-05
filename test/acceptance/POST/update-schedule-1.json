@@ -1,6 +1,18 @@
 {
     "schedule": {
         "name": "s1",
-        "execution-mode": "parallel"
+        "execution-mode": "sequential",
+        "action": [
+            {
+                "name": "a",
+                "task": "mtr",
+                "option": [
+                    {
+                        "id": "0",
+                        "value": "facebook.com"
+                    }
+                ]
+            }
+        ]
     }
 }

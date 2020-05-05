@@ -4,7 +4,19 @@
          "schedule": [
             {
                "name": "s1",
-               "execution-mode": "sequential"
+               "execution-mode": "sequential",
+               "action": [
+                  {
+                     "name": "a",
+                     "task": "ping",
+                     "option": [
+                        {
+                           "id": "0",
+                           "value": "google.com"
+                        }
+                     ]
+                  }
+               ]
             },
             {
                "name": "s2",
