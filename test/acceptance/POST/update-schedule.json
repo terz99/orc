@@ -1,7 +1,18 @@
 {
-  "schedule": {
-    "name": "demo",
-    "start": "every_minute",
-    "execution-mode": "parallel"
-  }
+    "schedule": {
+        "name": "s1",
+        "execution-mode": "sequential",
+        "action": [
+            {
+                "name": "a",
+                "task": "mtr",
+                "option": [
+                    {
+                        "id": "0",
+                        "value": "facebook.com"
+                    }
+                ]
+            }
+        ]
+    }
 }

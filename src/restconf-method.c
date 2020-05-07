@@ -318,9 +318,6 @@ static error check_path(struct json_object **root_yang, char **path,
     if (keylist && uci->parent && get_leaf_as_type(child, uci->parent)) {
       char **ref_names = uci_get_children_references(uci->parent, &err);
       uci->parent->option = "";
-      if (err != RE_OK) {
-        return err;
-      }
 
       char target_name[512];
       int size = snprintf(target_name, sizeof(target_name), "%s_%s", uci->parent->section, keylist);
@@ -955,9 +952,6 @@ static struct UciPath *extract_list_paths(struct UciPath *path_list, struct json
     get_path_from_yang(val, uci);
     if (uci->parent && get_leaf_as_type(val, uci->parent)) {
       char **ref_names = uci_get_children_references(uci->parent, err);
-      if (*err != RE_OK) {
-        return NULL;
-      }
       for (size_t i = 0; i < vector_size(ref_names); i++) {
         uci->section = ref_names[i];
         path_list = extract_nested_list_paths(path_list, val, uci, err);
@@ -966,6 +960,7 @@ static struct UciPath *extract_list_paths(struct UciPath *path_list, struct json
       path_list = extract_nested_list_paths(path_list, val, uci, err);
     }
   }
+  *err = RE_OK;
   return path_list;
 }
 
@@ -998,7 +993,7 @@ struct UciPath *extract_paths(struct json_object *node, struct UciPath *uci,
     // If section is named
     if (!is_null_or_empty(uci->section)) {
       path_list = extract_list_paths(path_list, map, uci, err);
-      if (!path_list || *err != RE_OK) {
+      if (*err != RE_OK) {
         return NULL;
       }
       goto done_list;
@@ -1011,7 +1006,7 @@ struct UciPath *extract_paths(struct json_object *node, struct UciPath *uci,
       uci->where = 1;
       uci->index = start;
       path_list = extract_list_paths(path_list, map, uci, err);
-      if (!path_list || *err != RE_OK) {
+      if (*err != RE_OK) {
         return NULL;
       }
     }
@@ -1025,7 +1020,7 @@ struct UciPath *extract_paths(struct json_object *node, struct UciPath *uci,
   }
   json_object_object_get_ex(node, YANG_MAP, &map);
   path_list = extract_list_paths(path_list, map, uci, err);
-  if (!path_list || *err != RE_OK) {
+  if (*err != RE_OK) {
     return NULL;
   }
   *err = RE_OK;

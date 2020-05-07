@@ -35,7 +35,10 @@ char **uci_get_children_references(struct UciPath *path, error *err) {
   char **ref_names = NULL;
   char path_string[512];
 
+  int tmp = path->where;
+  path->where = 0;
   uci_combine_to_path(path, path_string, sizeof(path_string));
+  path->where = tmp;
   if (!(ref_names = uci_read_list(path_string))) {
     *err = UCI_READ_FAILED;
     return NULL;

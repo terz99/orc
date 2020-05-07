@@ -1,0 +1,12 @@
+{
+  "task": {
+    "name": "mtr",
+    "program": "/usr/bin/mtr",
+    "option": [
+      {
+        "id": "one_cycle",
+        "name": "--report-cycles=5"
+      }
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "schedule": {
+    "name": "s3",
+    "start": "every_minute"
+  }
+}
