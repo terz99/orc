@@ -21,6 +21,8 @@
 #define YANG_LEAF_LIST "leaf-list"
 #define YANG_CONTAINER "container"
 #define YANG_LIST "list"
+#define YANG_DEPTH "depth"
+#define YANG_PARENT "parent"
 
 int yang_is_leaf(const char* type_string);
 int yang_is_list(const char* type_string);

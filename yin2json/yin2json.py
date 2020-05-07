@@ -325,6 +325,16 @@ def process_imported_types(args, imported):
                                 converted["to"] = range_split[1]
                             types[val["type_name"]] = converted
 
+def label_depths(js, parent=None, depth=0):
+    if js["type"] in ["leaf", "leaf-list"]:
+        return
+
+    if js["type"] in ["module", "container", "list"]:
+        js["depth"] = depth
+        for key, val in js["map"].items():
+            if parent is not None and val["type"] in ["container", "list"]:
+                val["parent"] = parent
+            label_depths(val, key, depth+1)
 
 def main():
     parser = argparse.ArgumentParser(description='Preprocess YIN for OpenWrt RESTCONF')
@@ -344,6 +354,7 @@ def main():
             groupings = Grouping()
             imported = Imported()
             js = convert(js, imported, groupings)
+            label_depths(js)
             modules.append((os.path.basename(file).split('.')[0], js))
 
     process_imported_types(args, imported)
