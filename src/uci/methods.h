@@ -15,6 +15,7 @@ struct UciPath {
   char *option;
   int where;
   int index;
+  int depth;
 
   struct UciPath *parent;
 };
@@ -26,7 +27,7 @@ struct UciWhere {
 };
 
 #define INIT_UCI_PATH() \
-  { "", "", "", "", 0, 0, NULL }
+  { "", "", "", "", 0, 0, 0, NULL }
 
 struct UciPath *uci_link_parent(struct UciPath* src);
 struct UciPath *uci_dup_path(struct UciPath* src);

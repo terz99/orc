@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import copy
 
 import xmltodict
 from mako.lookup import TemplateLookup
@@ -250,7 +251,7 @@ def extract_uses(generated, value, imported, groupings):
         print("Invalid use of 'uses': {}".format(value))
         return
     name = value["@name"]
-    grouping = groupings.find(name)
+    grouping = copy.deepcopy(groupings.find(name))
     if grouping == None:
         print("Could not find {} in groupings".format(name))
         return
@@ -326,15 +327,12 @@ def process_imported_types(args, imported):
                             types[val["type_name"]] = converted
 
 def label_depths(js, parent=None, depth=0):
-    if js["type"] in ["leaf", "leaf-list"]:
-        return
-
     if js["type"] in ["module", "container", "list"]:
         js["depth"] = depth
         for key, val in js["map"].items():
+            label_depths(val, key, depth+1)
             if parent is not None and val["type"] in ["container", "list"]:
                 val["parent"] = parent
-            label_depths(val, key, depth+1)
 
 def main():
     parser = argparse.ArgumentParser(description='Preprocess YIN for OpenWrt RESTCONF')

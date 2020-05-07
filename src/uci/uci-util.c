@@ -75,6 +75,8 @@ int get_path_from_yang(struct json_object *jobj, struct UciPath *uci) {
   char *uci_section = NULL;
   char *uci_option = NULL;
   char *uci_section_type = NULL;
+  char *uci_parent = NULL;
+  int uci_depth = -1;
   json_object_object_get_ex(jobj, YANG_UCI_PACKAGE, &uci_value);
   if (json_object_get_type(uci_value) == json_type_string) {
     uci_package = (char *)json_object_get_string(uci_value);
@@ -91,10 +93,17 @@ int get_path_from_yang(struct json_object *jobj, struct UciPath *uci) {
   if (json_object_get_type(uci_value) == json_type_string) {
     uci_section_type = (char *)json_object_get_string(uci_value);
   }
+  json_object_object_get_ex(jobj, YANG_DEPTH, &uci_value);
+  if (json_object_get_type(uci_value) == json_type_int) {
+    uci_depth = (int) json_object_get_int(uci_value);
+  }
 
   struct UciPath *path_dup = uci_dup_path(uci);
   if (!path_dup) {
     goto done;
+  }
+  if (uci_depth != -1) {
+    uci->depth = uci_depth;
   }
   if (uci_package) {
     if (uci_section && uci_section_type) {
@@ -163,12 +172,21 @@ int get_path_from_yang(struct json_object *jobj, struct UciPath *uci) {
 
   if (uci_option) {
     uci->option = uci_option;
-    goto done;
   }
   done:
-  if (get_leaf_as_type(jobj, uci)) {
-    uci->option = "";
-    uci->parent = uci_link_parent(path_dup);
+  json_object_object_get_ex(jobj, YANG_PARENT, &uci_value);
+  if (json_object_get_type(uci_value) == json_type_string) {
+    uci_parent = (char *) json_object_get_string(uci_value);
+  }
+  if (uci_parent) {
+    while (path_dup && !(strcmp(path_dup->section_type, uci_parent) == 0 && path_dup->depth == uci->depth - 1)) {
+      path_dup = path_dup->parent;
+    }
+    if (path_dup) {
+      uci->parent = uci_link_parent(path_dup);
+    } else {
+      uci->parent = NULL;
+    }
   }
   return 0;
 }
