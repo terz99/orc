@@ -1,0 +1,6 @@
+{
+  "task": {
+    "name": "ping",
+    "program": "/usr/bin/ping"
+  }
+}

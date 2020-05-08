@@ -343,7 +343,8 @@ static error check_path(struct json_object **root_yang, char **path,
         return LIST_NO_FILTER;
       }
 
-      if ((err = get_list_item_where(child, keylist, uci)) != RE_OK) {
+      if (is_null_or_empty(uci->section)
+        && (err = get_list_item_where(child, keylist, uci)) != RE_OK) {
         if ((err != LIST_UNDEFINED_KEY && !stop_at_key) || !stop_at_key) {
           return err;
         }
