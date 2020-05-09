@@ -88,11 +88,11 @@ int restconf_data_missing() {
  * Not Found - invalid-value
  * @return
  */
-int restconf_invalid_value() {
+int restconf_no_such_element() {
   printf("Status: 404 Not Found\r\n");
   content_type_json();
   headers_end();
-  restconf_error("invalid-value");
+  restconf_error("no-such-element");
   return 0;
 }
 
@@ -163,7 +163,7 @@ int print_error(error err) {
       restconf_operation_failed_internal();
       break;
     case NO_SUCH_ELEMENT:
-      restconf_invalid_value();
+      restconf_no_such_element();
       break;
     case LIST_UNDEFINED_KEY:
       restconf_operation_failed();

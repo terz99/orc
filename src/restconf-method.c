@@ -1067,7 +1067,7 @@ int data_delete(struct CgiContext *cgi, char **pathvec, int root) {
   }
   uci_combine_to_path(&uci, exists_path, sizeof(exists_path));
   if (!uci_path_exists(exists_path)) {
-    retval = restconf_invalid_value();
+    retval = restconf_no_such_element();
     goto done;
   }
   if (yang_mandatory(top_level)) {

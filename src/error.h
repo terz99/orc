@@ -24,7 +24,7 @@ int restconf_badrequest();
 int restconf_malformed();
 int restconf_data_exists();
 int restconf_data_missing();
-int restconf_invalid_value();
+int restconf_no_such_element();
 int restconf_unknown_namespace();
 int restconf_missing_element();
 int restconf_partial_operation();
