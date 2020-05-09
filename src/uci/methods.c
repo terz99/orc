@@ -6,7 +6,7 @@
 #include "util.h"
 #include "vector.h"
 
-struct UciPath *uci_link_parent(struct UciPath* src) {
+struct UciPath *uci_link_parent(struct UciPath *src) {
   struct UciPath *res = uci_dup_path(src);
   if (!res) {
     return NULL;
@@ -21,7 +21,7 @@ struct UciPath *uci_link_parent(struct UciPath* src) {
  * @param src source of the duplicate
  * @return pointer to the duplicate upon success, NULL otherwise
  */
-struct UciPath *uci_dup_path(struct UciPath* src) {
+struct UciPath *uci_dup_path(struct UciPath *src) {
   struct UciPath *res = (struct UciPath *) malloc(sizeof(struct UciPath));
   if (!res) {
     return NULL;
@@ -123,17 +123,17 @@ int uci_index_where(struct UciWhere *where) {
   char *package = str_dup(where->path->package);
   char *section_type = str_dup(where->path->section_type);
   struct UciPath path = {.package = package,
-                         .section_type = section_type,
-                         .section = "",
-                         .option = "",
-                         .index = 0,
-                         .where = 0};
+      .section_type = section_type,
+      .section = "",
+      .option = "",
+      .index = 0,
+      .where = 0};
   while (1) {
     int notfound = 0;
     for (int i = 0; i < where->key_value_length; i++) {
       char path_string[512];
       char buf[512];
-      path.option = (char *)where->key_value[i].key;
+      path.option = (char *) where->key_value[i].key;
       combine_to_anonymous_path(&path, index, path_string, sizeof(path_string));
       if (uci_read_option(path_string, buf, sizeof(buf))) {
         index = -1;
@@ -213,11 +213,11 @@ int uci_list_length(struct UciPath *path) {
     return -1;
   }
   struct UciPath cloned_path = {.section = "",
-                                .package = package,
-                                .section_type = section_type,
-                                .index = 0,
-                                .where = 0,
-                                .option = ""};
+      .package = package,
+      .section_type = section_type,
+      .index = 0,
+      .where = 0,
+      .option = ""};
 
   while (1) {
     char path_string[512];
@@ -342,6 +342,54 @@ int uci_delete_path(char *path, int commit) {
   }
 
   if (uci_delete(ctx, &ptr)) {
+    free(dup_path);
+    uci_free_context(ctx);
+    return 1;
+  }
+
+  if (commit) {
+    uci_commit(ctx, &ptr.p, false);
+  } else {
+    uci_save(ctx, ptr.p);
+  }
+  free(dup_path);
+  uci_free_context(ctx);
+  return 0;
+}
+
+int uci_delete_list(char *path, char *key, int commit) {
+  struct uci_ptr ptr;
+  char *dup_path = NULL;
+  struct uci_context *ctx = uci_alloc_context();
+  if (!ctx) {
+    return 1;
+  }
+
+  char append[512];
+  int size = snprintf(append, sizeof(append), "=%s", key);
+  append[size] = '\0';
+  strcat(path, append);
+
+  unsigned int UCI_LOOKUP_COMPLETE = (1u << 1u);
+
+  if (!(dup_path = str_dup(path))) {
+    return 1;
+  }
+
+  if ((uci_lookup_ptr(ctx, &ptr, dup_path, true) != UCI_OK) ||
+      (ptr.o == NULL && ptr.s == NULL)) {
+    free(dup_path);
+    uci_free_context(ctx);
+    return -1;
+  }
+
+  if (!(ptr.flags & UCI_LOOKUP_COMPLETE)) {
+    free(dup_path);
+    uci_free_context(ctx);
+    return -1;
+  }
+
+  if (uci_del_list(ctx, &ptr)) {
     free(dup_path);
     uci_free_context(ctx);
     return 1;

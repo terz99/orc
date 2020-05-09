@@ -29,19 +29,34 @@ struct UciWhere {
 #define INIT_UCI_PATH() \
   { "", "", "", "", 0, 0, 0, NULL }
 
-struct UciPath *uci_link_parent(struct UciPath* src);
-struct UciPath *uci_dup_path(struct UciPath* src);
+struct UciPath *uci_link_parent(struct UciPath *src);
+
+struct UciPath *uci_dup_path(struct UciPath *src);
+
 int uci_read_option(char *path, char *buffer, size_t size);
+
 char **uci_read_list(char *path);
+
 int uci_path_exists(char *path);
+
 int uci_index_where(struct UciWhere *where);
+
 int uci_write_option(char *path, const char *value);
+
 int uci_write_list(char *path, const char *value);
+
 int uci_list_length(struct UciPath *path);
+
 struct uci_section *uci_add_section_anon(char *package_name, char *type);
+
 int uci_add_section_named(char *package_name, const char *type, char *name);
+
 int uci_revert_package(char *package);
+
 int uci_delete_path(char *path, int commit);
+
+int uci_delete_list(char *path, char *key, int commit);
+
 int uci_commit_package(char *package);
 
 #endif  //_YANG_UCI_H

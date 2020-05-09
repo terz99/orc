@@ -1033,9 +1033,11 @@ int data_delete(struct CgiContext *cgi, char **pathvec, int root) {
   json_object *top_level = NULL;
   char *module_name = NULL;
   char *top_level_name = NULL;
+  char *key = NULL;
   int retval = 1;
   struct UciPath uci = INIT_UCI_PATH();
   struct UciPath *delete = NULL;
+  struct UciPath *delete_ref = NULL;
   char **package_list = NULL;
   error err;
   char exists_path[512];
@@ -1073,6 +1075,15 @@ int data_delete(struct CgiContext *cgi, char **pathvec, int root) {
     goto done;
   }
 
+  if (vector_size(pathvec) > 3 && uci.parent && get_leaf_as_type(top_level, uci.parent)) {
+    key = malloc(strlen(uci.section) + 1);
+    if (key) {
+      strcpy(key, uci.section);
+      delete_ref = uci_dup_path(uci.parent);
+    }
+    uci.parent->option = "";
+  }
+
   delete = extract_paths(top_level, &uci, &err);
   if (err != RE_OK) {
     retval = print_error(err);
@@ -1098,10 +1109,23 @@ int data_delete(struct CgiContext *cgi, char **pathvec, int root) {
     retval = restconf_partial_operation();
     goto done;
   }
+
+  if (key && delete_ref) {
+    char path_string[512];
+    uci_combine_to_path(delete_ref, path_string, sizeof(path_string));
+    if (uci_delete_list(path_string, key, true) == 1) {
+      retval = print_error(INTERNAL);
+      goto done;
+    }
+  }
+
   retval = 0;
   printf("Status: 204 No Content\r\n");
   headers_end();
 done:
+  if (key) {
+    free(key);
+  }
   if (delete) {
     vector_free(delete);
   }
