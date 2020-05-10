@@ -1,6 +1,13 @@
 {
   "task": {
     "name": "ping",
-    "program": "/usr/bin/ping"
+    "program": "/usr/bin/ping",
+    "option": [
+      {
+        "id": "count",
+        "name": "-c",
+        "value": "10"
+      }
+    ]
   }
 }

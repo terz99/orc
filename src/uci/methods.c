@@ -279,11 +279,16 @@ int uci_add_section_named(char *package_name, const char *type, char *name) {
     uci_free_context(ctx);
     return 1;
   }
-  ptr.value = type;
-  uci_set(ctx, &ptr);
-  uci_commit(ctx, &ptr.p, false);
 
-  uci_free_context(ctx);
+  if (ptr.s == NULL) {
+    ptr.value = type;
+    uci_set(ctx, &ptr);
+    uci_commit(ctx, &ptr.p, false);
+  }
+
+  if (ctx) {
+    uci_free_context(ctx);
+  }
   return 0;
 }
 
@@ -359,38 +364,29 @@ int uci_delete_path(char *path, int commit) {
 
 int uci_delete_list(char *path, char *key, int commit) {
   struct uci_ptr ptr;
-  char *dup_path = NULL;
   struct uci_context *ctx = uci_alloc_context();
   if (!ctx) {
     return 1;
   }
 
-  char append[512];
-  int size = snprintf(append, sizeof(append), "=%s", key);
-  append[size] = '\0';
-  strcat(path, append);
+  char path_string[512];
+  int size = snprintf(path_string, sizeof(path_string), "%s=%s", path, key);
+  path_string[size] = '\0';
 
   unsigned int UCI_LOOKUP_COMPLETE = (1u << 1u);
 
-  if (!(dup_path = str_dup(path))) {
-    return 1;
-  }
-
-  if ((uci_lookup_ptr(ctx, &ptr, dup_path, true) != UCI_OK) ||
+  if ((uci_lookup_ptr(ctx, &ptr, (char *) path_string, true) != UCI_OK) ||
       (ptr.o == NULL && ptr.s == NULL)) {
-    free(dup_path);
     uci_free_context(ctx);
     return -1;
   }
 
   if (!(ptr.flags & UCI_LOOKUP_COMPLETE)) {
-    free(dup_path);
     uci_free_context(ctx);
     return -1;
   }
 
   if (uci_del_list(ctx, &ptr)) {
-    free(dup_path);
     uci_free_context(ctx);
     return 1;
   }
@@ -400,7 +396,6 @@ int uci_delete_list(char *path, char *key, int commit) {
   } else {
     uci_save(ctx, ptr.p);
   }
-  free(dup_path);
   uci_free_context(ctx);
   return 0;
 }

@@ -61,7 +61,7 @@ int combine_to_anonymous_path(struct UciPath *path, int index, char *buffer,
  */
 int uci_combine_to_path(struct UciPath *path, char *buffer,
                         size_t buffer_size) {
-  if (path->where) {
+  if (path->where && (path->section == NULL || strlen(path->section) == 0)) {
     combine_to_anonymous_path(path, path->index, buffer, buffer_size);
   } else {
     combine_to_path(path, buffer, buffer_size);

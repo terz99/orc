@@ -14,6 +14,22 @@
 #include "yang-util.h"
 #include "yang-verify.h"
 
+#define GET 0
+#define POST 1
+#define PUT 2
+#define DELETE 3
+
+int is_null_or_empty(char *str) {
+  return (str == NULL || strlen(str) == 0);
+}
+
+static int requires_keys(int request) {
+  if (request == POST) {
+    return 0;
+  }
+  return 1;
+}
+
 static UciWritePair **verify_content_yang_util(struct json_object *content,
                                                struct json_object *yang_node,
                                                struct UciPath *path, error *err,
@@ -80,12 +96,20 @@ static UciWritePair **verify_content_yang_util(struct json_object *content,
         return NULL;
       }
     } else {
-      if (list_length != 0 && check_exists) {
-        *err = ELEMENT_ALREADY_EXISTS;
+      struct json_object *array = json_object_new_array();
+      if (value_type == json_type_array) {
+        json_array_forloop(content, idx) {
+          json_object_array_add(array, json_object_array_get_idx(content, idx));
+        }
+      } else if (value_type == json_type_object) {
+        json_object_array_add(array, content);
+      } else {
+        *err = INTERNAL;
         return NULL;
       }
 
-      *err = json_yang_verify_list(content, yang_node);
+      *err = json_yang_verify_list(array, yang_node);
+
       if (*err != RE_OK) {
         return NULL;
       }
@@ -191,10 +215,6 @@ static UciWritePair **verify_content_yang_util(struct json_object *content,
   return command_list;
 }
 
-int is_null_or_empty(char *str) {
-  return (str == NULL || strlen(str) == 0);
-}
-
 void verify_section_names(UciWritePair **cmds, error *err) {
   *err = RE_OK;
   for (size_t i = 0; i < vector_size(cmds); i++) {
@@ -276,9 +296,11 @@ static error get_list_item_where(struct json_object *yang, char *keylist,
   return RE_OK;
 }
 
+
+
 static error check_path(struct json_object **root_yang, char **path,
-                        size_t start, size_t end, struct UciPath *uci,
-                        int check_keys, int stop_at_key) {
+    size_t start, size_t end, struct UciPath *uci, int check_keys,
+    int stop_at_key, int request) {
   struct json_object *iter = *root_yang;
   struct json_object *keys = NULL;
   size_t i;
@@ -315,7 +337,8 @@ static error check_path(struct json_object **root_yang, char **path,
     }
 
     get_path_from_yang(child, uci);
-    if (keylist && uci->parent && get_leaf_as_type(child, uci->parent)) {
+    if (requires_keys(request) && keylist && uci->parent
+      && get_leaf_as_type(child, uci->parent)) {
       char **ref_names = uci_get_children_references(uci->parent, &err);
       uci->parent->option = "";
 
@@ -336,14 +359,16 @@ static error check_path(struct json_object **root_yang, char **path,
 
     type = json_get_string(child, YANG_TYPE);
     if (type && yang_is_list(type)) {
-      int next_is_end = i + 1 == end;
-      if (!keylist && !next_is_end) {
-        return LIST_NO_FILTER;
-      } else if (!keylist) {
+      if (requires_keys(request) && !keylist) {
         return LIST_NO_FILTER;
       }
 
-      if (is_null_or_empty(uci->section)
+      int next_is_end = i + 1 == end;
+      if (!next_is_end) {
+        return LIST_NO_FILTER;
+      }
+
+      if (requires_keys(request) && is_null_or_empty(uci->section)
         && (err = get_list_item_where(child, keylist, uci)) != RE_OK) {
         if ((err != LIST_UNDEFINED_KEY && !stop_at_key) || !stop_at_key) {
           return err;
@@ -489,7 +514,7 @@ int data_get(struct CgiContext *cgi, char **pathvec) {
     goto done;
   }
   get_path_from_yang(top_level, &uci);
-  err = check_path(&top_level, pathvec, 2, vector_size(pathvec), &uci, 0, 0);
+  err = check_path(&top_level, pathvec, 2, vector_size(pathvec), &uci, 0, 0, GET);
   if (!top_level || err != RE_OK) {
     retval = print_error(err);
     goto done;
@@ -570,6 +595,8 @@ int data_post(struct CgiContext *cgi, char **pathvec, int root) {
   enum json_tokener_error parse_error;
   char path_string[512];
   char key_out[1024];
+  UciWritePair *container_create = NULL;
+  UciWritePair *reference_create = NULL;
   UciWritePair **cmds = NULL;
   struct UciPath uci = INIT_UCI_PATH();
 
@@ -622,10 +649,47 @@ int data_post(struct CgiContext *cgi, char **pathvec, int root) {
     content = root_object;
     get_path_from_yang(content, &uci);
   } else {
-    err = check_path(&top_level, pathvec, 2, vector_size(pathvec), &uci, 1, 0);
+    err = check_path(&top_level, pathvec, 2, vector_size(pathvec), &uci, 1, 0, POST);
+    content = root_object;
     if (!top_level || err != RE_OK) {
       retval = print_error(err);
       goto done;
+    }
+    if (uci.parent && get_leaf_as_type(top_level, uci.parent) && is_null_or_empty(uci.section)) {
+      struct json_object *key = NULL;
+      json_object_object_get_ex(top_level, YANG_KEYS, &key);
+      if (json_object_get_type(key) == json_type_array && json_object_array_length(key) > 1) {
+        retval = print_error(MULTIPLE_OBJECTS);
+        goto done;
+      }
+      struct json_object *key_object = json_object_array_get_idx(key, 0);
+      if (json_object_get_type(key_object) != json_type_string) {
+        retval = print_error(INVALID_TYPE);
+        goto done;
+      }
+      if (is_null_or_empty(uci.section_type)) {
+        retval = print_error(YANG_SCHEMA_ERROR);
+        goto done;
+      }
+      const char *key_string = json_object_get_string(key_object);
+      char *key_value = (char *) json_get_string(content, key_string);
+      if (!key_value) {
+        retval = print_error(KEY_NOT_PRESENT);
+        goto done;
+      }
+
+      uci.section = key_value;
+      char section_name[512];
+      int size = snprintf(section_name, sizeof(section_name), "%s_%s",
+          uci.parent->section, uci.section);
+      section_name[size] = '\0';
+
+      reference_create = initialize_uci_write_pair(uci.parent, section_name, list);
+      if (!reference_create) {
+        retval = restconf_operation_failed_internal();
+        goto done;
+      }
+      uci.parent->option = "";
     }
   }
 
@@ -637,10 +701,7 @@ int data_post(struct CgiContext *cgi, char **pathvec, int root) {
 
   uci_combine_to_path(&uci, path_string, sizeof(path_string));
   exists = uci_path_exists(path_string);
-  if ((!exists && !root)) {
-    retval = restconf_data_missing();
-    goto done;
-  } else if ((exists && root)) {
+  if (exists) {
     retval = restconf_data_exists();
     goto done;
   }
@@ -649,11 +710,12 @@ int data_post(struct CgiContext *cgi, char **pathvec, int root) {
     goto done;
   }
 
-  UciWritePair *container_create =
-      initialize_uci_write_pair(&uci, NULL, container);
-  if (!container_create) {
-    retval = restconf_operation_failed_internal();
-    goto done;
+  if (root) {
+    container_create = initialize_uci_write_pair(&uci, NULL, container);
+    if (!container_create) {
+      retval = restconf_operation_failed_internal();
+      goto done;
+    }
   }
   root_key_copy = str_dup(root_key);
   struct json_object *created = NULL;
@@ -672,12 +734,17 @@ int data_post(struct CgiContext *cgi, char **pathvec, int root) {
       }
     }
   }
-  cmds = verify_content_yang(content, top_level, &uci, &err, !root, 1);
+  cmds = verify_content_yang(content, top_level, &uci, &err, 0, 1);
   if (err != RE_OK) {
     retval = print_error(err);
     goto done;
   }
-  vector_push_back(cmds, container_create);
+  if (container_create) {
+    vector_push_back(cmds, container_create);
+  }
+  if (reference_create) {
+    vector_push_back(cmds, reference_create);
+  }
   write_uci_write_list(cmds);
   printf("Status: 201 Created\r\n");
   char *protocol = NULL;
@@ -782,7 +849,7 @@ int data_put(struct CgiContext *cgi, char **pathvec, int root) {
     content = root_object;
     get_path_from_yang(content, &uci);
   } else {
-    err = check_path(&top_level, pathvec, 2, vector_size(pathvec), &uci, 1, 1);
+    err = check_path(&top_level, pathvec, 2, vector_size(pathvec), &uci, 1, 1, PUT);
     if (!top_level || err != RE_OK) {
       retval = print_error(err);
       goto done;
@@ -1060,7 +1127,7 @@ int data_delete(struct CgiContext *cgi, char **pathvec, int root) {
   }
   get_path_from_yang(top_level, &uci);
 
-  err = check_path(&top_level, pathvec, 2, vector_size(pathvec), &uci, 1, 0);
+  err = check_path(&top_level, pathvec, 2, vector_size(pathvec), &uci, 1, 0, DELETE);
   if (!top_level || err != RE_OK) {
     retval = print_error(err);
     goto done;

@@ -79,7 +79,11 @@ int write_uci_write_list(UciWritePair **write_list) {
       if (!duplicated_local_path_string) {
         return 1;
       }
-      uci_delete_path(duplicated_local_path_string, 1);
+      if (cmd->value) {
+        uci_delete_list(duplicated_local_path_string, cmd->value, 1);
+      } else {
+        uci_delete_path(duplicated_local_path_string, 1);
+      }
       free(duplicated_local_path_string);
       vector_push_back(path, cmd->path);
     }
