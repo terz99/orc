@@ -58,3 +58,61 @@ py.test ./test/test_restconf.tavern.yml
 
 This will run integration tests that check the actual implementation. The
 url where the server is located can be changed in `/test/common.yaml`.
+
+## Build and run locally
+
+The binary of this implementation can also be tested locally
+
+### Testing using CLion
+
+Make sure you run CLion in ROOT mode. To open the project in CLion, go to File -> Open and then click on the root CMakeLists.txt. Open as Project!
+Once the CMake is built by CLion, you have to edit the run configuration in CLion. Go to "Edit Configurations". The target executable `restconf` should be 
+found automatically by CMake, so you only need to change `Environmental variables`.
+
+* `REQUEST_METHOD=<whatever_request_type_you_want_to_send>`
+* `CONTENT_TYPE=application/yang-data+json`
+* `HTTP_ACCEPT=application/yang-data+json`
+* `REQUEST_URI=/cgi-bin/restconf/data/<package-module>/<path-to-target>`: See some examples below
+
+If you are doing a `POST` or `PUT` request then you some extra environmental variables:
+
+* `CONTENT_LENGTH=0`: this is important
+* `CONTENT_FILE_PATH=<path-to-content-file>`
+
+#### Example of `POST` request to `lmapd` UCI config file
+
+* `REQUEST_METHOD=POST`
+* `CONTENT_TYPE=application/yang-data+json`
+* `HTTP_ACCEPT=application/yang-data+json`
+* `REQUEST_URI=/cgi-bin/restconf/data/lmapd:lmap/tasks/task`
+* `CONTENT_LENGTH=0`
+* `CONTENT_FILE_PATH=<path-to-content-file>`
+
+Content file should look something like this:
+
+```json
+{
+  "task": {
+    "name": "ping",
+    "program": "/usr/bin/ping",
+    "option": [
+      {
+        "id": "count",
+        "name": "-c",
+        "value": "10"
+      }
+    ]
+  }
+}
+```
+
+#### Example of `GET` request to `lmapd` UCI config file
+
+* `REQUEST_METHOD=GET`
+* `CONTENT_TYPE=application/yang-data+json`
+* `HTTP_ACCEPT=application/yang-data+json`
+* `REQUEST_URI=/cgi-bin/restconf/data/lmapd:lmap`
+
+### Testing using Linux command line tool
+
+This feature is coming soon...
