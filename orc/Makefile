@@ -7,7 +7,7 @@ PKG_RELEASE:=1
 PKG_MAINTAINER:=Malte Granderath <malte.granderath@gmail.com>
 PKG_LICENSE:=BSD-3-Clause
 
-SOURCE_DIR:=/restconf
+SOURCE_DIR:=..
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/cmake.mk
